@@ -78,9 +78,9 @@ export default function DashboardLayout({
   const isActive = (path: string) => pathname === path;
 
   return (
-    <div className="flex h-[calc(100vh-64px)] overflow-hidden">
-      {/* Sidebar */}
-      <aside className="w-64 glass-panel border-r border-t-0 border-b-0 border-l-0 rounded-none flex flex-col justify-between hidden md:flex">
+    <div className="flex h-screen overflow-hidden flex-col md:flex-row">
+      {/* Sidebar - Desktop Only */}
+      <aside className="w-64 glass-panel border-r border-t-0 border-b-0 border-l-0 rounded-none flex-col justify-between hidden md:flex">
         <div className="p-6 space-y-6">
           <div className="flex items-center gap-3 mb-8">
             <div className="w-10 h-10 rounded-xl bg-brand-blue/20 flex items-center justify-center text-brand-blue border border-brand-blue/30 shadow-inner">
@@ -137,20 +137,52 @@ export default function DashboardLayout({
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-background/50 relative">
-        <div className="p-6 h-full flex flex-col">
+      <main className="flex-1 overflow-y-auto bg-background/50 relative pb-20 md:pb-0">
+        <div className="p-4 md:p-6 h-full flex flex-col">
           {/* Header Dashboard Area */}
-          <header className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">Trading Dashboard</h2>
-            <div className="glass-panel px-6 py-3 rounded-xl flex items-center gap-4">
-              <span className="text-brand-silver-dark text-sm">Balance:</span>
-              <span className="text-2xl font-mono font-bold text-white">${balance}</span>
+          <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <h2 className="text-xl md:text-2xl font-bold">Trading Dashboard</h2>
+            <div className="glass-panel px-4 py-2 md:px-6 md:py-3 rounded-xl flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-start">
+              <span className="text-brand-silver-dark text-xs md:text-sm uppercase font-bold tracking-tighter">Balance</span>
+              <span className="text-xl md:text-2xl font-mono font-bold text-white">${balance}</span>
             </div>
           </header>
           
           {children}
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 glass-panel border-t border-white/10 rounded-none z-50 px-6 py-3 flex justify-between items-center backdrop-blur-xl bg-black/60">
+        <Link 
+          href="/dashboard" 
+          className={`flex flex-col items-center gap-1 ${isActive('/dashboard') ? 'text-brand-blue' : 'text-brand-silver-dark'}`}
+        >
+          <Activity size={20} />
+          <span className="text-[10px] font-bold uppercase">Trade</span>
+        </Link>
+        <Link 
+          href="/dashboard/deposit" 
+          className={`flex flex-col items-center gap-1 ${isActive('/dashboard/deposit') ? 'text-brand-blue' : 'text-brand-silver-dark'}`}
+        >
+          <ArrowDownToLine size={20} />
+          <span className="text-[10px] font-bold uppercase">Deposit</span>
+        </Link>
+        <Link 
+          href="/dashboard/wallet" 
+          className={`flex flex-col items-center gap-1 ${isActive('/dashboard/wallet') ? 'text-brand-blue' : 'text-brand-silver-dark'}`}
+        >
+          <Wallet size={20} />
+          <span className="text-[10px] font-bold uppercase">Wallet</span>
+        </Link>
+        <button 
+          onClick={handleLogout}
+          className="flex flex-col items-center gap-1 text-red-500/70"
+        >
+          <LogOut size={20} />
+          <span className="text-[10px] font-bold uppercase">Exit</span>
+        </button>
+      </nav>
     </div>
   );
 }
