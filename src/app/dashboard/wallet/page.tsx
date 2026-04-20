@@ -224,11 +224,18 @@ export default function WalletPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-mono font-bold text-sm mb-1">{req.amount ? `$${req.amount}` : '-'}</div>
+                    <div className={`font-mono font-bold text-sm mb-1 ${req.type === 'deposit' && req.status === 'approved' ? 'text-green-400' : req.type === 'withdraw' ? 'text-orange-400' : 'text-white'}`}>
+                      {req.type === 'withdraw' ? (
+                        Number(req.amount) > 0 ? `$${Number(req.amount).toFixed(2)}` : <span className="text-yellow-500 text-[10px]">Pending</span>
+                      ) : (
+                        req.status === 'approved' ? <span className="text-green-400 text-[10px]">Credited</span> : <span className="text-yellow-500 text-[10px]">Pending</span>
+                      )}
+                    </div>
                     <div className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase border ${
                       req.status === 'pending' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-500' :
                       req.status === 'approved' ? 'bg-green-500/10 border-green-500/30 text-green-500' :
-                      'bg-red-500/10 border-red-500/30 text-red-500'
+                      req.status === 'rejected' ? 'bg-red-500/10 border-red-500/30 text-red-500' :
+                      'bg-gray-500/10 border-gray-500/30 text-gray-400'
                     }`}>
                       {req.status}
                     </div>

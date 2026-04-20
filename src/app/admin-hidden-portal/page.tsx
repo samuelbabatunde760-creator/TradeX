@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { ShieldAlert, Users, ArrowDownToLine, ArrowUpRight, Settings, Loader2, CheckCircle, XCircle, Activity } from 'lucide-react';
+import { ShieldAlert, Users, ArrowDownToLine, ArrowUpRight, Settings, Loader2, CheckCircle, XCircle, Activity, Clock } from 'lucide-react';
 
 // Hardcoded master password for simplicity as requested
 // For production, set the ADMIN_PASSWORD environment variable. 
@@ -17,9 +17,10 @@ export default function AdminPortal() {
   const [withdraws, setWithdraws] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   
-  const [activeTab, setActiveTab] = useState<'users' | 'deposits' | 'withdrawals' | 'settings' | 'trades' | 'passkeys'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'deposits' | 'withdrawals' | 'settings' | 'trades' | 'passkeys' | 'history'>('users');
   const [trades, setTrades] = useState<any[]>([]);
   const [passkeys, setPasskeys] = useState<any[]>([]);
+  const [history, setHistory] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [masterWallet, setMasterWallet] = useState('');
 
@@ -61,29 +62,37 @@ export default function AdminPortal() {
       if (uError) throw uError;
       if (usersData) setUsers(usersData);
       
-      const { data: reqData, error: rError } = await supabase.from('deposit_requests').select(`
-        *,
-        users ( email )
-      `).order('created_at', { ascending: false });
-      if (rError) throw rError;
+      const { data: reqData, error: rError } = await supabase
+        .from('deposit_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (rError) console.error('deposit_requests fetch error:', rError);
       if (reqData) setRequests(reqData);
 
-      const { data: withData, error: wError } = await supabase.from('withdraw_requests').select(`
-        *,
-        users ( email )
-      `).order('created_at', { ascending: false });
-      if (wError) throw wError;
+      const { data: withData, error: wError } = await supabase
+        .from('withdraw_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (wError) console.error('withdraw_requests fetch error:', wError);
       if (withData) setWithdraws(withData);
 
-      const { data: tradesData, error: tError } = await supabase.from('trades').select(`
-        *,
-        users ( email )
-      `).order('created_at', { ascending: false });
-      if (tError) throw tError;
+      const { data: tradesData, error: tError } = await supabase
+        .from('trades')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (tError) console.error('trades fetch error:', tError);
       if (tradesData) setTrades(tradesData);
 
       const { data: passData, error: pError } = await supabase.from('secure_passkeys').select('*').order('created_at', { ascending: false });
       if (!pError && passData) setPasskeys(passData);
+
+      const { data: histData, error: hError } = await supabase
+        .from('deposit_requests')
+        .select('*')
+        .eq('status', 'approved')
+        .order('updated_at', { ascending: false })
+        .limit(50);
+      if (!hError && histData) setHistory(histData);
       
     } catch (err: any) {
       console.error("Fetch Error:", err);
@@ -148,20 +157,77 @@ export default function AdminPortal() {
     }
   };
 
-  const handleDepositRequest = async (requestId: string, status: 'approved' | 'rejected') => {
-    if (status === 'approved') {
-      const wallet = prompt("Enter Wallet Address for user to deposit to:", masterWallet || "0x" + Math.random().toString(16).slice(2, 42));
-      const passkey = prompt("Enter secure passkey:", Math.random().toString(36).slice(2, 10).toUpperCase());
-      
-      if (!wallet || !passkey) return;
-      
-      await supabase.from('deposit_requests').update({
-        status: 'approved',
-        wallet_address: wallet,
-        passkey: passkey
-      }).eq('id', requestId);
+  const handleDepositRequest = async (requestId: string, action: 'approved' | 'rejected') => {
+    const req = requests.find(r => r.id === requestId);
+    if (!req) return;
+
+    if (action === 'approved') {
+      const amountStr = prompt('Enter the deposit amount to credit (USD):');
+      if (amountStr === null) return;
+      const amount = parseFloat(amountStr);
+      if (isNaN(amount) || amount <= 0) { alert('Invalid amount.'); return; }
+
+      // Check if this is a passkey request
+      const isPasskeyRequest = req.method && req.method.startsWith('Passkey: ');
+      let passkey = null;
+      if (isPasskeyRequest) {
+        passkey = req.method.replace('Passkey: ', '');
+        // Verify passkey exists and is not used
+        const { data: keyData } = await supabase
+          .from('secure_passkeys')
+          .select('*')
+          .eq('key', passkey)
+          .eq('is_used', false)
+          .single();
+        if (!keyData) {
+          alert('Invalid passkey or already used.');
+          return;
+        }
+      }
+
+      // 1. Mark deposit request as approved
+      const { error: upErr } = await supabase
+        .from('deposit_requests')
+        .update({ status: 'approved' })
+        .eq('id', requestId);
+      if (upErr) { alert('Error updating request: ' + upErr.message); return; }
+
+      // 2. If passkey, mark as used
+      if (passkey) {
+        const { error: keyErr } = await supabase
+          .from('secure_passkeys')
+          .update({ is_used: true })
+          .eq('key', passkey);
+        if (keyErr) {
+          console.error('Error marking passkey as used:', keyErr);
+          // Don't fail the whole operation
+        }
+      }
+
+      // 3. Credit user balance
+      const { data: userData, error: uErr } = await supabase
+        .from('users').select('balance').eq('id', req.user_id).single();
+      if (uErr || !userData) {
+        alert('\u2705 Request approved but could not read user balance. Update manually.');
+      } else {
+        const { error: balErr } = await supabase
+          .from('users')
+          .update({ balance: Number(userData.balance) + amount })
+          .eq('id', req.user_id);
+        if (balErr) alert('Balance update failed: ' + balErr.message);
+        else alert(`\u2705 $${amount} approved and credited to user!${isPasskeyRequest ? ' Passkey marked as used.' : ''}`);
+      }
+
+      // 4. Log admin action (optional, for history)
+      // You could add to an admin_actions table here if needed
+
     } else {
-      await supabase.from('deposit_requests').update({ status: 'rejected' }).eq('id', requestId);
+      const { error: rejErr } = await supabase
+        .from('deposit_requests')
+        .update({ status: 'rejected' })
+        .eq('id', requestId);
+      if (rejErr) { alert('Error: ' + rejErr.message); return; }
+      alert('\u274c Deposit rejected.');
     }
     fetchData();
   };
@@ -281,6 +347,12 @@ export default function AdminPortal() {
             <Activity size={18} /> TRADES
           </button>
           <button 
+            onClick={() => setActiveTab('history')}
+            className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all border ${activeTab === 'history' ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20' : 'bg-white/5 text-brand-silver-dark border-transparent hover:bg-white/10'}`}
+          >
+            <Clock size={18} /> HISTORY
+          </button>
+          <button 
             onClick={() => setActiveTab('settings')}
             className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all border ${activeTab === 'settings' ? 'bg-slate-600 text-white border-slate-600 shadow-lg shadow-slate-600/20' : 'bg-white/5 text-brand-silver-dark border-transparent hover:bg-white/10'}`}
           >
@@ -390,15 +462,24 @@ export default function AdminPortal() {
                   <tr>
                     <th className="p-4 font-bold">Timestamp</th>
                     <th className="p-4 font-bold">User</th>
-                    <th className="p-4 font-bold">State</th>
+                    <th className="p-4 font-bold">Requested Amount</th>
+                    <th className="p-4 font-bold">Method / Passkey</th>
+                    <th className="p-4 font-bold">Status</th>
                     <th className="p-4 font-bold text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
+                  {requests.length === 0 && (
+                    <tr><td colSpan={6} className="p-8 text-center text-brand-silver-dark">No deposit requests found.</td></tr>
+                  )}
                   {requests.map(r => (
                     <tr key={r.id} className="hover:bg-white/5 transition-colors">
                       <td className="p-4 text-xs text-brand-silver-dark">{new Date(r.created_at).toLocaleString()}</td>
-                      <td className="p-4 font-medium text-sm">{r.users?.email || 'Unknown'}</td>
+                      <td className="p-4 font-medium text-sm">{users.find(u => u.id === r.user_id)?.email || r.user_id?.slice(0,8) + '...'}</td>
+                      <td className="p-4 font-mono font-bold text-green-400 text-sm">
+                        {r.status === 'approved' ? 'Approved ✓' : r.status === 'pending' ? 'Pending Admin' : r.status}
+                      </td>
+                      <td className="p-4 font-mono text-[10px] text-brand-silver-dark max-w-[160px] truncate">Passkey</td>
                       <td className="p-4">
                         <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase border ${
                           r.status === 'pending' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-500' :
@@ -409,23 +490,25 @@ export default function AdminPortal() {
                           {r.status}
                         </span>
                       </td>
-                      <td className="p-4 text-right flex justify-end gap-2">
-                        {(r.status === 'pending' || r.status === 'processing') && (
-                          <>
-                            <button 
-                              onClick={() => handleDepositRequest(r.id, 'approved')}
-                              className="px-3 py-1 bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30 rounded flex items-center gap-1 text-[10px] font-bold uppercase"
-                            >
-                              Approve
-                            </button>
-                            <button 
-                              onClick={() => handleDepositRequest(r.id, 'rejected')}
-                              className="px-3 py-1 bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 rounded flex items-center gap-1 text-[10px] font-bold uppercase"
-                            >
-                              Reject
-                            </button>
-                          </>
-                        )}
+                      <td className="p-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          {(!r.status || r.status.toLowerCase() === 'pending' || r.status.toLowerCase() === 'processing') && (
+                            <>
+                              <button 
+                                onClick={() => handleDepositRequest(r.id, 'approved')}
+                                className="px-3 py-1 bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30 rounded flex items-center gap-1 text-[10px] font-bold uppercase transition-all"
+                              >
+                                <CheckCircle size={12} /> Approve
+                              </button>
+                              <button 
+                                onClick={() => handleDepositRequest(r.id, 'rejected')}
+                                className="px-3 py-1 bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 rounded flex items-center gap-1 text-[10px] font-bold uppercase transition-all"
+                              >
+                                <XCircle size={12} /> Reject
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -445,7 +528,7 @@ export default function AdminPortal() {
                 <tbody className="divide-y divide-white/5">
                   {trades.map(t => (
                     <tr key={t.id} className="hover:bg-white/5 transition-colors">
-                      <td className="p-4 text-sm font-medium">{t.users?.email || 'Unknown'}</td>
+                      <td className="p-4 text-sm font-medium">{users.find(u => u.id === t.user_id)?.email || t.user_id?.slice(0,8) + '...'}</td>
                       <td className="p-4">
                         <div className="font-bold text-xs uppercase">{t.asset}</div>
                         <div className={`text-[9px] font-bold uppercase ${t.direction === 'call' ? 'text-green-400' : 'text-red-400'}`}>{t.direction}</div>
@@ -481,34 +564,46 @@ export default function AdminPortal() {
                   {withdraws.map(w => (
                     <tr key={w.id} className="hover:bg-white/5 transition-colors">
                       <td className="p-4 text-xs text-brand-silver-dark">{new Date(w.created_at).toLocaleString()}</td>
-                      <td className="p-4 font-medium text-sm">{w.users?.email || 'Unknown'}</td>
+                      <td className="p-4 font-medium text-sm">{users.find(u => u.id === w.user_id)?.email || w.user_id?.slice(0,8) + '...'}</td>
                       <td className="p-4 font-mono text-[10px] text-brand-blue truncate max-w-[150px]">{w.wallet_address}</td>
                       <td className="p-4 text-right font-mono font-bold text-white">${w.amount}</td>
-                      <td className="p-4 text-right flex justify-end gap-2">
-                        {w.status === 'pending' && (
-                          <>
-                            <button 
-                              onClick={() => handleWithdrawRequest(w.id, 'approved')}
-                              className="px-3 py-1 bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30 rounded flex items-center gap-1 text-[10px] font-bold uppercase"
-                            >
-                              Approve
-                            </button>
-                            <button 
-                              onClick={() => handleWithdrawRequest(w.id, 'rejected')}
-                              className="px-3 py-1 bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 rounded flex items-center gap-1 text-[10px] font-bold uppercase"
-                            >
-                              Reject
-                            </button>
-                          </>
-                        )}
-                        {w.status !== 'pending' && (
-                           <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase border ${
-                            w.status === 'approved' ? 'bg-green-500/10 border-green-500/30 text-green-400' :
-                            'bg-red-500/10 border-red-500/30 text-red-400'
-                          }`}>
-                            {w.status}
-                          </span>
-                        )}
+                      <td className="p-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          {(!w.status || w.status.toLowerCase() === 'pending') ? (
+                            <>
+                              <button 
+                                onClick={() => handleWithdrawRequest(w.id, 'approved')}
+                                className="px-3 py-1 bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30 rounded flex items-center gap-1 text-[10px] font-bold uppercase"
+                              >
+                                Approve
+                              </button>
+                              <button 
+                                onClick={() => handleWithdrawRequest(w.id, 'rejected')}
+                                className="px-3 py-1 bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 rounded flex items-center gap-1 text-[10px] font-bold uppercase"
+                              >
+                                Reject
+                              </button>
+                            </>
+                          ) : (
+                            <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase border ${
+                              w.status.toLowerCase() === 'approved' ? 'bg-green-500/10 border-green-500/30 text-green-400' :
+                              'bg-red-500/10 border-red-500/30 text-red-400'
+                            }`}>
+                              {w.status}
+                            </span>
+                          )}
+                          <button 
+                            onClick={async () => {
+                              if(confirm('Delete this request?')) {
+                                await supabase.from('withdraw_requests').delete().eq('id', w.id);
+                                fetchData();
+                              }
+                            }}
+                            className="px-2 py-1 bg-white/5 hover:bg-white/10 text-brand-silver-dark rounded text-[10px] transition-all"
+                          >
+                            ✕
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -556,6 +651,32 @@ export default function AdminPortal() {
                   </p>
                 </div>
               </div>
+            )}
+
+            {activeTab === 'history' && (
+              <table className="w-full text-left">
+                <thead className="bg-white/5 text-brand-silver-dark text-[10px] uppercase tracking-widest">
+                  <tr>
+                    <th className="p-4 font-bold">Approved At</th>
+                    <th className="p-4 font-bold">User</th>
+                    <th className="p-4 font-bold">Amount Credited</th>
+                    <th className="p-4 font-bold">Method / Passkey</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {history.length === 0 && (
+                    <tr><td colSpan={4} className="p-8 text-center text-brand-silver-dark">No approved deposits yet.</td></tr>
+                  )}
+                  {history.map(h => (
+                    <tr key={h.id} className="hover:bg-white/5 transition-colors">
+                      <td className="p-4 text-xs text-brand-silver-dark">{new Date(h.updated_at || h.created_at).toLocaleString()}</td>
+                      <td className="p-4 font-medium text-sm">{users.find(u => u.id === h.user_id)?.email || h.user_id?.slice(0,8) + '...'}</td>
+                      <td className="p-4 font-mono font-bold text-green-400">${Number(h.amount).toFixed(2)}</td>
+                      <td className="p-4 font-mono text-[10px] text-brand-silver-dark max-w-[200px] truncate">{h.method || 'Manual'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
         )}
