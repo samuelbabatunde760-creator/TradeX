@@ -3,11 +3,12 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
@@ -52,8 +53,11 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="glass-panel p-8 rounded-2xl">
           <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-brand-blue/10 text-brand-blue mb-4">
+              <ShieldCheck size={28} />
+            </div>
             <h1 className="text-3xl font-bold text-white mb-2">Welcome Back</h1>
-            <p className="text-brand-silver-dark">Log in to your TradeX account</p>
+            <p className="text-brand-silver-dark">Log in to your secure trading terminal</p>
           </div>
 
           {error && (
@@ -79,24 +83,34 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-brand-silver-dark mb-1">Password</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-brand-silver-dark">Password</label>
+                <Link href="#" className="text-xs text-brand-blue hover:underline">Forgot password?</Link>
+              </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-silver-dark" size={18} />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-background/50 border border-white/10 rounded-lg pl-10 pr-4 py-3 text-white placeholder-brand-silver-dark/50 focus:outline-none focus:border-brand-blue/50 focus:ring-1 focus:ring-brand-blue/50 transition-all"
+                  className="w-full bg-background/50 border border-white/10 rounded-lg pl-10 pr-12 py-3 text-white placeholder-brand-silver-dark/50 focus:outline-none focus:border-brand-blue/50 focus:ring-1 focus:ring-brand-blue/50 transition-all"
                   placeholder="••••••••"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-silver-dark hover:text-white transition-colors"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 bg-brand-blue hover:bg-brand-blue-dark text-white rounded-lg py-3 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+              className="w-full flex items-center justify-center gap-2 bg-brand-blue hover:bg-brand-blue-dark text-white rounded-lg py-3 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-2 shadow-lg shadow-brand-blue/20"
             >
               {loading ? <Loader2 className="animate-spin" size={20} /> : 'Sign In'} 
               {!loading && <ArrowRight size={20} />}
@@ -115,7 +129,7 @@ export default function LoginPage() {
 
             <button
               onClick={handleGoogleLogin}
-              className="mt-6 w-full flex items-center justify-center gap-2 bg-white text-gray-900 hover:bg-gray-100 rounded-lg py-3 font-semibold transition-all"
+              className="mt-6 w-full flex items-center justify-center gap-2 bg-white text-gray-900 hover:bg-gray-100 rounded-lg py-3 font-semibold transition-all shadow-sm"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>

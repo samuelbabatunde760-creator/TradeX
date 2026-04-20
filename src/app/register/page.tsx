@@ -1,19 +1,43 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { Mail, Lock, ArrowRight, Loader2, User } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Loader2, User, Eye, EyeOff, Check, X, ShieldCheck } from 'lucide-react';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
 
+  const passwordRequirements = useMemo(() => [
+    { label: 'At least 8 characters', met: password.length >= 8 },
+    { label: 'At least one number', met: /\d/.test(password) },
+    { label: 'At least one special character', met: /[!@#$%^&*(),.?":{}|<>]/.test(password) },
+    { label: 'Passwords match', met: password === confirmPassword && password !== '' },
+  ], [password, confirmPassword]);
+
+  const isPasswordValid = passwordRequirements.every(req => req.met);
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!isPasswordValid) {
+      setError('Please meet all password requirements.');
+      return;
+    }
+
+    if (!agreeToTerms) {
+      setError('You must agree to the Terms and Conditions.');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
@@ -36,7 +60,6 @@ export default function RegisterPage() {
       return;
     }
 
-    // 2. Add user to our public.users table to initialize balance
     // 2. Add user to our public.users table to initialize balance
     if (authData.user) {
       const { error: dbError } = await supabase
@@ -70,16 +93,20 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="min-h-[calc(100vh-64px)] flex items-center justify-center p-6">
+    <main className="min-h-[calc(100vh-64px)] flex items-center justify-center p-6 py-12">
       <div className="w-full max-w-md">
         <div className="glass-panel p-8 rounded-2xl">
           <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-brand-blue/10 text-brand-blue mb-4">
+              <ShieldCheck size={28} />
+            </div>
             <h1 className="text-3xl font-bold text-white mb-2">Create Account</h1>
-            <p className="text-brand-silver-dark">Start trading with zero fees</p>
+            <p className="text-brand-silver-dark">Start trading with secure institutional access</p>
           </div>
 
           {error && (
-            <div className="p-4 mb-6 rounded-lg bg-red-500/10 border border-red-500/50 text-red-400 text-sm">
+            <div className="p-4 mb-6 rounded-lg bg-red-500/10 border border-red-500/50 text-red-400 text-sm flex items-center gap-3">
+              <X size={18} className="shrink-0" />
               {error}
             </div>
           )}
@@ -105,21 +132,78 @@ export default function RegisterPage() {
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-silver-dark" size={18} />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-background/50 border border-white/10 rounded-lg pl-10 pr-4 py-3 text-white placeholder-brand-silver-dark/50 focus:outline-none focus:border-brand-blue/50 focus:ring-1 focus:ring-brand-blue/50 transition-all"
+                  className="w-full bg-background/50 border border-white/10 rounded-lg pl-10 pr-12 py-3 text-white placeholder-brand-silver-dark/50 focus:outline-none focus:border-brand-blue/50 focus:ring-1 focus:ring-brand-blue/50 transition-all"
                   placeholder="••••••••"
-                  minLength={6}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-silver-dark hover:text-white transition-colors"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-brand-silver-dark mb-1">Confirm Password</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-silver-dark" size={18} />
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full bg-background/50 border border-white/10 rounded-lg pl-10 pr-12 py-3 text-white placeholder-brand-silver-dark/50 focus:outline-none focus:border-brand-blue/50 focus:ring-1 focus:ring-brand-blue/50 transition-all"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-silver-dark hover:text-white transition-colors"
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-white/5 border border-white/5 space-y-2">
+              <p className="text-xs font-semibold text-brand-silver-dark uppercase tracking-wider mb-2">Security Requirements</p>
+              {passwordRequirements.map((req, i) => (
+                <div key={i} className="flex items-center gap-2 text-sm">
+                  {req.met ? (
+                    <Check size={14} className="text-green-500" />
+                  ) : (
+                    <div className="w-3.5 h-3.5 rounded-full border border-white/20" />
+                  )}
+                  <span className={req.met ? 'text-white' : 'text-brand-silver-dark'}>{req.label}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-start gap-3 py-2">
+              <div className="flex items-center h-5">
+                <input
+                  id="terms"
+                  type="checkbox"
+                  checked={agreeToTerms}
+                  onChange={(e) => setAgreeToTerms(e.target.checked)}
+                  className="w-4 h-4 rounded border-white/10 bg-background/50 text-brand-blue focus:ring-brand-blue/50"
                 />
               </div>
+              <label htmlFor="terms" className="text-sm text-brand-silver-dark">
+                I agree to the <Link href="/terms" className="text-brand-blue hover:underline">Terms of Service</Link> and <Link href="/privacy" className="text-brand-blue hover:underline">Privacy Policy</Link>
+              </label>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 bg-brand-blue hover:bg-brand-blue-dark text-white rounded-lg py-3 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+              className="w-full flex items-center justify-center gap-2 bg-brand-blue hover:bg-brand-blue-dark text-white rounded-lg py-3 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-2 shadow-lg shadow-brand-blue/20"
             >
               {loading ? <Loader2 className="animate-spin" size={20} /> : 'Create Account'} 
               {!loading && <ArrowRight size={20} />}
@@ -138,7 +222,7 @@ export default function RegisterPage() {
 
             <button
               onClick={handleGoogleRegister}
-              className="mt-6 w-full flex items-center justify-center gap-2 bg-white text-gray-900 hover:bg-gray-100 rounded-lg py-3 font-semibold transition-all"
+              className="mt-6 w-full flex items-center justify-center gap-2 bg-white text-gray-900 hover:bg-gray-100 rounded-lg py-3 font-semibold transition-all shadow-sm"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>

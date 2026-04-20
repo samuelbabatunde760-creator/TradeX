@@ -17,8 +17,9 @@ export default function AdminPortal() {
   const [withdraws, setWithdraws] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   
-  const [activeTab, setActiveTab] = useState<'users' | 'deposits' | 'withdrawals' | 'settings' | 'trades'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'deposits' | 'withdrawals' | 'settings' | 'trades' | 'passkeys'>('users');
   const [trades, setTrades] = useState<any[]>([]);
+  const [passkeys, setPasskeys] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [masterWallet, setMasterWallet] = useState('');
 
@@ -80,6 +81,9 @@ export default function AdminPortal() {
       `).order('created_at', { ascending: false });
       if (tError) throw tError;
       if (tradesData) setTrades(tradesData);
+
+      const { data: passData, error: pError } = await supabase.from('secure_passkeys').select('*').order('created_at', { ascending: false });
+      if (!pError && passData) setPasskeys(passData);
       
     } catch (err: any) {
       console.error("Fetch Error:", err);
@@ -87,6 +91,22 @@ export default function AdminPortal() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const generatePasskeys = async () => {
+    setLoading(true);
+    const newKeys = Array.from({ length: 20 }, () => ({
+      key: 'TX-' + Math.random().toString(36).slice(2, 8).toUpperCase() + '-' + Math.random().toString(36).slice(2, 5).toUpperCase()
+    }));
+
+    const { error } = await supabase.from('secure_passkeys').insert(newKeys);
+    if (error) {
+      alert("Error generating keys. Make sure the 'secure_passkeys' table exists. Error: " + error.message);
+    } else {
+      alert("20 Secure Passkeys generated successfully!");
+      fetchData();
+    }
+    setLoading(false);
   };
 
   const updateBalance = async (userId: string, currentBalance: number) => {
@@ -191,7 +211,7 @@ export default function AdminPortal() {
           </div>
         </header>
 
-        <div className="flex gap-4 mb-8">
+        <div className="flex flex-wrap gap-4 mb-8">
           <button 
             onClick={() => setActiveTab('users')}
             className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all border ${activeTab === 'users' ? 'bg-brand-blue text-white border-brand-blue shadow-lg shadow-brand-blue/20' : 'bg-white/5 text-brand-silver-dark border-transparent hover:bg-white/10'}`}
@@ -208,6 +228,12 @@ export default function AdminPortal() {
                 {requests.filter(r => r.status === 'pending').length}
               </span>
             )}
+          </button>
+          <button 
+            onClick={() => setActiveTab('passkeys')}
+            className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all border ${activeTab === 'passkeys' ? 'bg-purple-600 text-white border-purple-600 shadow-lg shadow-purple-600/20' : 'bg-white/5 text-brand-silver-dark border-transparent hover:bg-white/10'}`}
+          >
+            <CheckCircle size={18} /> PASSKEYS
           </button>
           <button 
             onClick={() => setActiveTab('withdrawals')}
@@ -228,7 +254,7 @@ export default function AdminPortal() {
           </button>
           <button 
             onClick={() => setActiveTab('settings')}
-            className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all border ${activeTab === 'settings' ? 'bg-purple-600 text-white border-purple-600 shadow-lg shadow-purple-600/20' : 'bg-white/5 text-brand-silver-dark border-transparent hover:bg-white/10'}`}
+            className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all border ${activeTab === 'settings' ? 'bg-slate-600 text-white border-slate-600 shadow-lg shadow-slate-600/20' : 'bg-white/5 text-brand-silver-dark border-transparent hover:bg-white/10'}`}
           >
             <Settings size={18} /> SETTINGS
           </button>
@@ -239,7 +265,7 @@ export default function AdminPortal() {
             <XCircle size={20} />
             <div>
               <p className="font-bold">Database Error</p>
-              <p className="text-sm opacity-80">{error}. Check if RLS is enabled in Supabase without proper policies.</p>
+              <p className="text-sm opacity-80">{error}. Check if 'secure_passkeys' table exists.</p>
             </div>
           </div>
         )}
@@ -261,7 +287,7 @@ export default function AdminPortal() {
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {users.length === 0 && (
-                    <tr><td colSpan={4} className="p-8 text-center text-brand-silver-dark">No users found. Ensure they have logged into the dashboard at least once.</td></tr>
+                    <tr><td colSpan={4} className="p-8 text-center text-brand-silver-dark">No users found.</td></tr>
                   )}
                   {users.map(u => (
                     <tr key={u.id} className="hover:bg-white/5 transition-colors">
@@ -283,6 +309,45 @@ export default function AdminPortal() {
                   ))}
                 </tbody>
               </table>
+            )}
+
+            {activeTab === 'passkeys' && (
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h2 className="text-xl font-bold">Secure Deposit Passkeys</h2>
+                    <p className="text-brand-silver-dark text-sm">Manage keys that users must use to complete deposits.</p>
+                  </div>
+                  <button 
+                    onClick={generatePasskeys}
+                    className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-purple-600/20 flex items-center gap-2"
+                  >
+                    <CheckCircle size={18} /> GENERATE 20 KEYS
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[500px] overflow-y-auto p-2">
+                  {passkeys.length === 0 && <div className="col-span-full p-12 text-center text-brand-silver-dark bg-white/5 rounded-2xl">No passkeys generated yet. Click the button above to create 20 keys.</div>}
+                  {passkeys.map(pk => (
+                    <div key={pk.id} className={`p-4 rounded-xl border ${pk.is_used ? 'bg-red-500/5 border-red-500/20 opacity-60' : 'bg-green-500/5 border-green-500/20'}`}>
+                      <div className="flex justify-between items-start mb-2">
+                        <code className="text-sm font-bold font-mono text-white tracking-wider">{pk.key}</code>
+                        <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold uppercase ${pk.is_used ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
+                          {pk.is_used ? 'Used' : 'Available'}
+                        </span>
+                      </div>
+                      <div className="text-[9px] text-brand-silver-dark font-mono truncate">
+                        ID: {pk.id}
+                      </div>
+                      {pk.is_used && (
+                        <div className="mt-2 pt-2 border-t border-white/5 text-[9px] text-red-400">
+                          Used at: {new Date(pk.created_at).toLocaleString()}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
 
             {activeTab === 'deposits' && (
@@ -443,7 +508,7 @@ export default function AdminPortal() {
                   <div className="pt-4">
                     <button 
                       onClick={saveSettings}
-                      className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-purple-600/20"
+                      className="w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-slate-600/20"
                     >
                       SAVE SETTINGS
                     </button>
@@ -453,7 +518,7 @@ export default function AdminPortal() {
                 <div className="bg-yellow-500/10 border border-yellow-500/30 p-4 rounded-xl">
                   <p className="text-xs text-yellow-500 font-bold uppercase mb-2">Notice:</p>
                   <p className="text-[11px] text-yellow-500/80 leading-relaxed">
-                    Settings are now saved globally in the 'system_settings' table. All administrators will see the same configuration.
+                    Settings are now saved globally in the 'system_settings' table.
                   </p>
                 </div>
               </div>
