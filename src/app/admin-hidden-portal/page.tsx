@@ -120,6 +120,34 @@ export default function AdminPortal() {
     fetchData();
   };
 
+  const updateUserPassword = async (userId: string, email: string) => {
+    const newPassword = prompt(`Enter new password for ${email}:`);
+    if (!newPassword || newPassword.length < 6) {
+      if (newPassword) alert("Password must be at least 6 characters.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch('/api/admin/update-user-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, newPassword }),
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        alert("Password updated successfully!");
+      } else {
+        alert("Error: " + result.error);
+      }
+    } catch (err: any) {
+      alert("Network error: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDepositRequest = async (requestId: string, status: 'approved' | 'rejected') => {
     if (status === 'approved') {
       const wallet = prompt("Enter Wallet Address for user to deposit to:", masterWallet || "0x" + Math.random().toString(16).slice(2, 42));
@@ -303,6 +331,12 @@ export default function AdminPortal() {
                           className="px-3 py-1 bg-white/10 hover:bg-white/20 rounded text-[10px] font-bold transition-colors uppercase"
                         >
                           Manual Adjust
+                        </button>
+                        <button 
+                          onClick={() => updateUserPassword(u.id, u.email)}
+                          className="px-3 py-1 bg-brand-blue/20 hover:bg-brand-blue/30 text-brand-blue rounded text-[10px] font-bold transition-colors uppercase ml-2"
+                        >
+                          Update Password
                         </button>
                       </td>
                     </tr>

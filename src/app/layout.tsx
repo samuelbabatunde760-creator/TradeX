@@ -10,16 +10,20 @@ export const metadata: Metadata = {
   description: "Advanced trading simulations with secure operations and fast execution.",
 };
 
+import { LanguageProvider } from '@/app/components/LanguageContext';
+
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en" className={`${inter.className} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-background text-foreground overflow-x-hidden">
-        <Navbar />
-        {children}
+    <html lang="en" className="dark">
+      <body className={`${inter.className} bg-[#020617] text-white antialiased`}>
+        <LanguageProvider>
+          <Navbar />
+          {children}
+        </LanguageProvider>
       </body>
     </html>
   );

@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-import { LogOut, User, Wallet, Activity, ArrowDownToLine } from 'lucide-react';
+import { LogOut, User, Wallet, Activity, ArrowDownToLine, Loader2 } from 'lucide-react';
+import { useLanguage } from '@/app/components/LanguageContext';
 
 export default function DashboardLayout({
   children,
@@ -12,6 +13,7 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { t } = useLanguage();
   const [user, setUser] = useState<any>(null);
   const [balance, setBalance] = useState<string>('0.00');
 
@@ -73,7 +75,12 @@ export default function DashboardLayout({
     router.push('/');
   };
 
-  if (!user) return <div className="min-h-screen flex items-center justify-center bg-background text-brand-blue font-mono">Loading TradeX...</div>;
+  if (!user) return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#020617]">
+      <Loader2 className="text-brand-blue animate-spin mb-4" size={40} />
+      <div className="text-brand-blue font-mono text-sm tracking-widest uppercase animate-pulse">TradeX Terminal Initializing...</div>
+    </div>
+  );
 
   const isActive = (path: string) => pathname === path;
 
@@ -88,7 +95,7 @@ export default function DashboardLayout({
             </div>
             <div>
               <div className="text-sm font-bold text-white truncate max-w-[140px]">{user.email?.split('@')[0]}</div>
-              <div className="text-[10px] text-brand-silver-dark uppercase tracking-widest font-bold">Standard Account</div>
+              <div className="text-[10px] text-brand-silver-dark uppercase tracking-widest font-bold">{t('common.secure')} Account</div>
             </div>
           </div>
           
@@ -101,7 +108,7 @@ export default function DashboardLayout({
                   : 'text-brand-silver-dark hover:text-white hover:bg-white/5 border-transparent'
               }`}
             >
-              <Activity size={18} /> Trade
+              <Activity size={18} /> {t('nav.trading')}
             </Link>
             <Link 
               href="/dashboard/deposit" 
@@ -111,7 +118,7 @@ export default function DashboardLayout({
                   : 'text-brand-silver-dark hover:text-white hover:bg-white/5 border-transparent'
               }`}
             >
-              <ArrowDownToLine size={18} /> Deposit
+              <ArrowDownToLine size={18} /> {t('nav.deposit')}
             </Link>
             <Link 
               href="/dashboard/wallet" 
@@ -121,7 +128,7 @@ export default function DashboardLayout({
                   : 'text-brand-silver-dark hover:text-white hover:bg-white/5 border-transparent'
               }`}
             >
-              <Wallet size={18} /> Wallet
+              <Wallet size={18} /> {t('nav.wallet') || 'Wallet'}
             </Link>
           </nav>
         </div>
@@ -131,7 +138,7 @@ export default function DashboardLayout({
             onClick={handleLogout}
             className="flex items-center gap-3 px-4 py-3 w-full text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
           >
-            <LogOut size={18} /> Logout
+            <LogOut size={18} /> {t('common.logout')}
           </button>
         </div>
       </aside>
@@ -141,9 +148,9 @@ export default function DashboardLayout({
         <div className="p-4 md:p-6 h-full flex flex-col">
           {/* Header Dashboard Area */}
           <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <h2 className="text-xl md:text-2xl font-bold">Trading Dashboard</h2>
+            <h2 className="text-xl md:text-2xl font-bold">{t('nav.dashboard')}</h2>
             <div className="glass-panel px-4 py-2 md:px-6 md:py-3 rounded-xl flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-start">
-              <span className="text-brand-silver-dark text-xs md:text-sm uppercase font-bold tracking-tighter">Balance</span>
+              <span className="text-brand-silver-dark text-xs md:text-sm uppercase font-bold tracking-tighter">{t('dashboard.balance') || 'Balance'}</span>
               <span className="text-xl md:text-2xl font-mono font-bold text-white">${balance}</span>
             </div>
           </header>
@@ -159,28 +166,28 @@ export default function DashboardLayout({
           className={`flex flex-col items-center gap-1 ${isActive('/dashboard') ? 'text-brand-blue' : 'text-brand-silver-dark'}`}
         >
           <Activity size={20} />
-          <span className="text-[10px] font-bold uppercase">Trade</span>
+          <span className="text-[10px] font-bold uppercase">{t('nav.trading')}</span>
         </Link>
         <Link 
           href="/dashboard/deposit" 
           className={`flex flex-col items-center gap-1 ${isActive('/dashboard/deposit') ? 'text-brand-blue' : 'text-brand-silver-dark'}`}
         >
           <ArrowDownToLine size={20} />
-          <span className="text-[10px] font-bold uppercase">Deposit</span>
+          <span className="text-[10px] font-bold uppercase">{t('nav.deposit')}</span>
         </Link>
         <Link 
           href="/dashboard/wallet" 
           className={`flex flex-col items-center gap-1 ${isActive('/dashboard/wallet') ? 'text-brand-blue' : 'text-brand-silver-dark'}`}
         >
           <Wallet size={20} />
-          <span className="text-[10px] font-bold uppercase">Wallet</span>
+          <span className="text-[10px] font-bold uppercase">{t('nav.wallet') || 'Wallet'}</span>
         </Link>
         <button 
           onClick={handleLogout}
           className="flex flex-col items-center gap-1 text-red-500/70"
         >
           <LogOut size={20} />
-          <span className="text-[10px] font-bold uppercase">Exit</span>
+          <span className="text-[10px] font-bold uppercase">{t('common.logout')}</span>
         </button>
       </nav>
     </div>

@@ -3,8 +3,10 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { Wallet, ArrowUpRight, ArrowDownLeft, Clock, History, CreditCard, Loader2 } from 'lucide-react';
+import { useLanguage } from '@/app/components/LanguageContext';
 
 export default function WalletPage() {
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [balance, setBalance] = useState<number>(0);
   const [trades, setTrades] = useState<any[]>([]);
@@ -78,12 +80,12 @@ export default function WalletPage() {
     const amountNum = parseFloat(withdrawAmount);
     
     if (isNaN(amountNum) || amountNum <= 0) {
-      setMessage('Error: Invalid amount');
+      setMessage(t('wallet.errorAmount'));
       return;
     }
     
     if (amountNum > balance) {
-      setMessage('Error: Insufficient balance');
+      setMessage(t('wallet.errorBalance'));
       return;
     }
     
@@ -101,7 +103,7 @@ export default function WalletPage() {
     if (error) {
       setMessage(`Error: ${error.message}`);
     } else {
-      setMessage('Request Sent: Admin will review and approve shortly.');
+      setMessage(t('wallet.requestSent'));
       setTimeout(() => {
         setShowWithdraw(false);
         setMessage('');
@@ -127,7 +129,7 @@ export default function WalletPage() {
           <div className="relative z-10">
             <div className="flex items-center gap-3 text-brand-silver-dark mb-4">
               <Wallet size={20} className="text-brand-blue" />
-              <span className="font-medium tracking-wide">TOTAL BALANCE</span>
+              <span className="font-medium tracking-wide uppercase">{t('wallet.total')}</span>
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-5xl font-bold font-mono text-white">${balance.toFixed(2)}</span>
@@ -136,13 +138,13 @@ export default function WalletPage() {
             
             <div className="mt-12 flex gap-4">
               <Link href="/dashboard/deposit" className="flex-1 bg-brand-blue hover:bg-brand-blue-dark text-white rounded-xl py-4 font-bold transition-all shadow-lg shadow-brand-blue/20 flex items-center justify-center gap-2">
-                <ArrowDownLeft size={18} /> DEPOSIT
+                <ArrowDownLeft size={18} /> {t('nav.deposit').toUpperCase()}
               </Link>
               <button 
                 onClick={() => setShowWithdraw(true)}
                 className="flex-1 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-xl py-4 font-bold transition-all flex items-center justify-center gap-2"
               >
-                <ArrowUpRight size={18} /> WITHDRAW
+                <ArrowUpRight size={18} /> {t('wallet.withdraw').toUpperCase()}
               </button>
             </div>
           </div>
@@ -152,14 +154,14 @@ export default function WalletPage() {
 
         <div className="glass-panel p-8 rounded-3xl flex flex-col justify-between">
           <div>
-            <div className="text-brand-silver-dark text-sm font-medium mb-1 text-center">Live Statistics</div>
+            <div className="text-brand-silver-dark text-sm font-medium mb-1 text-center">{t('wallet.stats')}</div>
             <div className="h-24 flex items-end gap-1.5 px-1 mt-4">
                {[30, 50, 40, 60, 45, 70, 65].map((h, i) => (
                  <div key={i} className="flex-1 bg-brand-blue/20 rounded-t-sm" style={{ height: `${h}%` }}></div>
                ))}
             </div>
           </div>
-          <div className="text-xs text-brand-silver-dark/60 mt-4 text-center">Market activity updated 2 mins ago</div>
+          <div className="text-xs text-brand-silver-dark/60 mt-4 text-center">{t('wallet.updated')}</div>
         </div>
       </div>
 
@@ -168,13 +170,13 @@ export default function WalletPage() {
         <section className="space-y-4">
           <div className="flex items-center justify-between px-2">
             <h4 className="text-xl font-bold flex items-center gap-2">
-              <History size={20} className="text-brand-blue" /> Trade Activity
+              <History size={20} className="text-brand-blue" /> {t('wallet.activity')}
             </h4>
-            <button className="text-sm text-brand-blue hover:underline">View All</button>
+            <button className="text-sm text-brand-blue hover:underline">{t('wallet.viewAll')}</button>
           </div>
           <div className="space-y-3">
             {trades.length === 0 ? (
-              <div className="glass-panel p-8 rounded-2xl text-center text-brand-silver-dark">No recent trades found.</div>
+              <div className="glass-panel p-8 rounded-2xl text-center text-brand-silver-dark">{t('wallet.noTrades')}</div>
             ) : (
               trades.map((trade) => (
                 <div key={trade.id} className="glass-panel p-4 rounded-xl flex items-center justify-between hover:bg-white/5 transition-all">
@@ -203,7 +205,7 @@ export default function WalletPage() {
         <section className="space-y-4">
           <div className="flex items-center justify-between px-2">
             <h4 className="text-xl font-bold flex items-center gap-2">
-              <CreditCard size={20} className="text-brand-blue" /> Request History
+              <CreditCard size={20} className="text-brand-blue" /> {t('wallet.requests')}
             </h4>
           </div>
           <div className="space-y-3">
@@ -217,7 +219,7 @@ export default function WalletPage() {
                       {req.type === 'deposit' ? <ArrowDownLeft size={20} /> : <ArrowUpRight size={20} />}
                     </div>
                     <div>
-                      <div className="font-bold text-sm uppercase">{req.type} REQUEST</div>
+                      <div className="font-bold text-sm uppercase">{req.type === 'deposit' ? t('nav.deposit').toUpperCase() : t('wallet.withdraw').toUpperCase()} REQUEST</div>
                       <div className="text-xs text-brand-silver-dark">{new Date(req.created_at).toLocaleString()}</div>
                     </div>
                   </div>
@@ -247,22 +249,22 @@ export default function WalletPage() {
             <div className="flex justify-between items-start mb-6">
               <div>
                 <h3 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
-                  <ArrowUpRight className="text-brand-blue" /> Withdraw
+                  <ArrowUpRight className="text-brand-blue" /> {t('wallet.withdraw')}
                 </h3>
-                <p className="text-brand-silver-dark text-sm">Transfer funds to your crypto wallet.</p>
+                <p className="text-brand-silver-dark text-sm">{t('wallet.transfer')}</p>
               </div>
               <button onClick={() => setShowWithdraw(false)} className="text-brand-silver-dark hover:text-white transition-colors">✕</button>
             </div>
 
             {message && (
-              <div className={`p-4 mb-6 rounded-xl text-sm font-medium border ${message.startsWith('Error') ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-green-500/10 border-green-500/30 text-green-400'}`}>
+              <div className={`p-4 mb-6 rounded-xl text-sm font-medium border ${message.startsWith('Error') || message.includes('error') ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-green-500/10 border-green-500/30 text-green-400'}`}>
                 {message}
               </div>
             )}
 
             <form onSubmit={handleWithdraw} className="space-y-6">
               <div>
-                <label className="block text-xs font-bold text-brand-silver-dark uppercase tracking-widest mb-2">Withdrawal Amount ($)</label>
+                <label className="block text-xs font-bold text-brand-silver-dark uppercase tracking-widest mb-2">{t('wallet.amount')} ($)</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-silver-dark font-mono">$</span>
                   <input 
@@ -284,7 +286,7 @@ export default function WalletPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-brand-silver-dark uppercase tracking-widest mb-2">Recipient Wallet Address</label>
+                <label className="block text-xs font-bold text-brand-silver-dark uppercase tracking-widest mb-2">{t('wallet.address')}</label>
                 <input 
                   type="text" 
                   required
@@ -297,11 +299,11 @@ export default function WalletPage() {
 
               <div className="p-4 bg-brand-blue/5 border border-brand-blue/10 rounded-xl space-y-2">
                 <div className="flex justify-between text-xs">
-                  <span className="text-brand-silver-dark">Processing Fee</span>
+                  <span className="text-brand-silver-dark">{t('wallet.fee')}</span>
                   <span className="text-white font-mono">2.5%</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-brand-silver-dark">You will receive</span>
+                  <span className="text-brand-silver-dark">{t('wallet.receive')}</span>
                   <span className="text-green-400 font-bold font-mono">${(parseFloat(withdrawAmount || '0') * 0.975).toFixed(2)}</span>
                 </div>
               </div>
@@ -311,7 +313,7 @@ export default function WalletPage() {
                 disabled={submitting}
                 className="w-full bg-brand-blue hover:bg-brand-blue-dark text-white rounded-xl py-4 font-bold transition-all shadow-lg shadow-brand-blue/20 flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                {submitting ? <Loader2 className="animate-spin" size={20} /> : 'CONFIRM WITHDRAWAL'}
+                {submitting ? <Loader2 className="animate-spin" size={20} /> : t('wallet.confirm')}
               </button>
             </form>
           </div>
