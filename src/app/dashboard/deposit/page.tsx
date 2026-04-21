@@ -71,6 +71,12 @@ export default function DepositPage() {
         return;
       }
 
+      // Mark passkey as used with timestamp
+      await supabase
+        .from('secure_passkeys')
+        .update({ is_used: true, used_at: new Date().toISOString() })
+        .eq('id', keyData.id);
+
       setMessage({type: 'success', text: 'Passkey submitted successfully! Waiting for admin approval.'});
       setPasskey('');
       fetchRecentRequests();

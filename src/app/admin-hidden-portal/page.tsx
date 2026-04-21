@@ -233,11 +233,11 @@ export default function AdminPortal() {
 
   const handleWithdrawRequest = async (requestId: string, status: 'approved' | 'rejected') => {
     if (status === 'approved') {
-      if (!confirm("Are you sure you want to approve this withdrawal? Ensure you have sent the funds manually first.")) return;
-      await supabase.from('withdraw_requests').update({ status: 'approved' }).eq('id', requestId);
+      if (!confirm("Approve this withdrawal? The amount has already been deducted from the user's balance. Ensure you send the funds manually.")) return;
+      await supabase.from('withdraw_requests').update({ status: 'approved', approved_at: new Date() }).eq('id', requestId);
     } else {
-      // If rejected, we should ideally refund the user, but for now just mark as rejected
-      const refund = confirm("Withdrawal rejected. Should we refund the amount to the user's balance?");
+      // Rejection: Refund the amount to user's balance
+      const refund = confirm("Reject this withdrawal? The amount will be refunded to the user's balance.");
       if (refund) {
         const req = withdraws.find(w => w.id === requestId);
         if (req) {
@@ -247,7 +247,7 @@ export default function AdminPortal() {
            }
         }
       }
-      await supabase.from('withdraw_requests').update({ status: 'rejected' }).eq('id', requestId);
+      await supabase.from('withdraw_requests').update({ status: 'rejected', rejected_at: new Date() }).eq('id', requestId);
     }
     fetchData();
   };
@@ -282,80 +282,80 @@ export default function AdminPortal() {
   }
 
   return (
-    <div className="min-h-screen bg-[#020617] text-white p-6 font-sans">
-      <div className="max-w-6xl mx-auto">
-        <header className="flex justify-between items-center mb-8 pb-6 border-b border-white/10">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-red-500/20 text-red-500 rounded-xl flex items-center justify-center border border-red-500/30">
-              <ShieldAlert size={24} />
+    <div className="min-h-screen bg-[#020617] text-white p-3 md:p-6 font-sans">
+      <div className="max-w-7xl mx-auto">
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 md:mb-8 pb-4 md:pb-6 border-b border-white/10 gap-4">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-red-500/20 text-red-500 rounded-xl flex items-center justify-center border border-red-500/30">
+              <ShieldAlert size={20} className="md:block" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold uppercase tracking-tighter">Trade<span className="text-red-500">X</span> Admin</h1>
+              <h1 className="text-lg md:text-2xl font-bold uppercase tracking-tighter">Trade<span className="text-red-500">X</span> Admin</h1>
               <p className="text-brand-silver-dark text-xs font-mono uppercase">Master Protocol Active</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <button onClick={fetchData} className="p-2 border border-white/20 rounded-lg hover:bg-white/10 transition-all text-xs font-bold uppercase">
-              Refresh Data
+          <div className="flex items-center gap-2 md:gap-4 w-full sm:w-auto">
+            <button onClick={fetchData} className="flex-1 sm:flex-none p-2 border border-white/20 rounded-lg hover:bg-white/10 transition-all text-xs font-bold uppercase">
+              Refresh
             </button>
-            <button onClick={() => setIsAuthenticated(false)} className="px-4 py-2 border border-white/20 rounded-lg hover:bg-white/10 text-xs font-bold transition-all uppercase tracking-widest">
+            <button onClick={() => setIsAuthenticated(false)} className="flex-1 sm:flex-none px-3 md:px-4 py-2 border border-white/20 rounded-lg hover:bg-white/10 text-xs font-bold transition-all uppercase tracking-widest">
               Logout
             </button>
           </div>
         </header>
 
-        <div className="flex flex-wrap gap-4 mb-8">
+        <div className="flex flex-wrap gap-2 md:gap-4 mb-6 md:mb-8 overflow-x-auto pb-2">
           <button 
             onClick={() => setActiveTab('users')}
-            className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all border ${activeTab === 'users' ? 'bg-brand-blue text-white border-brand-blue shadow-lg shadow-brand-blue/20' : 'bg-white/5 text-brand-silver-dark border-transparent hover:bg-white/10'}`}
+            className={`px-3 md:px-6 py-2 md:py-3 rounded-xl font-bold flex items-center gap-1 md:gap-2 transition-all border whitespace-nowrap text-xs md:text-sm ${activeTab === 'users' ? 'bg-brand-blue text-white border-brand-blue shadow-lg shadow-brand-blue/20' : 'bg-white/5 text-brand-silver-dark border-transparent hover:bg-white/10'}`}
           >
-            <Users size={18} /> USERS
+            <Users size={16} className="md:block" /> USERS
           </button>
           <button 
             onClick={() => setActiveTab('deposits')}
-            className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all border ${activeTab === 'deposits' ? 'bg-brand-blue text-white border-brand-blue shadow-lg shadow-brand-blue/20' : 'bg-white/5 text-brand-silver-dark border-transparent hover:bg-white/10'}`}
+            className={`px-3 md:px-6 py-2 md:py-3 rounded-xl font-bold flex items-center gap-1 md:gap-2 transition-all border whitespace-nowrap text-xs md:text-sm ${activeTab === 'deposits' ? 'bg-brand-blue text-white border-brand-blue shadow-lg shadow-brand-blue/20' : 'bg-white/5 text-brand-silver-dark border-transparent hover:bg-white/10'}`}
           >
-            <ArrowDownToLine size={18} /> DEPOSITS
+            <ArrowDownToLine size={16} className="md:block" /> DEPOSITS
             {requests.filter(r => r.status === 'pending').length > 0 && (
-              <span className="ml-2 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center animate-pulse">
+              <span className="ml-1 w-4 h-4 md:w-5 md:h-5 bg-red-500 text-white text-[8px] md:text-[10px] rounded-full flex items-center justify-center animate-pulse">
                 {requests.filter(r => r.status === 'pending').length}
               </span>
             )}
           </button>
           <button 
             onClick={() => setActiveTab('passkeys')}
-            className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all border ${activeTab === 'passkeys' ? 'bg-purple-600 text-white border-purple-600 shadow-lg shadow-purple-600/20' : 'bg-white/5 text-brand-silver-dark border-transparent hover:bg-white/10'}`}
+            className={`px-3 md:px-6 py-2 md:py-3 rounded-xl font-bold flex items-center gap-1 md:gap-2 transition-all border whitespace-nowrap text-xs md:text-sm ${activeTab === 'passkeys' ? 'bg-purple-600 text-white border-purple-600 shadow-lg shadow-purple-600/20' : 'bg-white/5 text-brand-silver-dark border-transparent hover:bg-white/10'}`}
           >
-            <CheckCircle size={18} /> PASSKEYS
+            <CheckCircle size={16} className="md:block" /> PASSKEYS
           </button>
           <button 
             onClick={() => setActiveTab('withdrawals')}
-            className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all border ${activeTab === 'withdrawals' ? 'bg-brand-blue text-white border-brand-blue shadow-lg shadow-brand-blue/20' : 'bg-white/5 text-brand-silver-dark border-transparent hover:bg-white/10'}`}
+            className={`px-3 md:px-6 py-2 md:py-3 rounded-xl font-bold flex items-center gap-1 md:gap-2 transition-all border whitespace-nowrap text-xs md:text-sm ${activeTab === 'withdrawals' ? 'bg-brand-blue text-white border-brand-blue shadow-lg shadow-brand-blue/20' : 'bg-white/5 text-brand-silver-dark border-transparent hover:bg-white/10'}`}
           >
-            <ArrowUpRight size={18} className="rotate-45" /> WITHDRAWALS
+            <ArrowUpRight size={16} className="md:block rotate-45" /> WITHDRAWALS
             {withdraws.filter(w => w.status === 'pending').length > 0 && (
-              <span className="ml-2 w-5 h-5 bg-orange-500 text-white text-[10px] rounded-full flex items-center justify-center animate-pulse">
+              <span className="ml-1 w-4 h-4 md:w-5 md:h-5 bg-orange-500 text-white text-[8px] md:text-[10px] rounded-full flex items-center justify-center animate-pulse">
                 {withdraws.filter(w => w.status === 'pending').length}
               </span>
             )}
           </button>
           <button 
             onClick={() => setActiveTab('trades')}
-            className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all border ${activeTab === 'trades' ? 'bg-green-600 text-white border-green-600 shadow-lg shadow-green-600/20' : 'bg-white/5 text-brand-silver-dark border-transparent hover:bg-white/10'}`}
+            className={`px-3 md:px-6 py-2 md:py-3 rounded-xl font-bold flex items-center gap-1 md:gap-2 transition-all border whitespace-nowrap text-xs md:text-sm ${activeTab === 'trades' ? 'bg-green-600 text-white border-green-600 shadow-lg shadow-green-600/20' : 'bg-white/5 text-brand-silver-dark border-transparent hover:bg-white/10'}`}
           >
-            <Activity size={18} /> TRADES
+            <Activity size={16} className="md:block" /> TRADES
           </button>
           <button 
             onClick={() => setActiveTab('history')}
-            className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all border ${activeTab === 'history' ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20' : 'bg-white/5 text-brand-silver-dark border-transparent hover:bg-white/10'}`}
+            className={`px-3 md:px-6 py-2 md:py-3 rounded-xl font-bold flex items-center gap-1 md:gap-2 transition-all border whitespace-nowrap text-xs md:text-sm ${activeTab === 'history' ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20' : 'bg-white/5 text-brand-silver-dark border-transparent hover:bg-white/10'}`}
           >
-            <Clock size={18} /> HISTORY
+            <Clock size={16} className="md:block" /> HISTORY
           </button>
           <button 
             onClick={() => setActiveTab('settings')}
-            className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all border ${activeTab === 'settings' ? 'bg-slate-600 text-white border-slate-600 shadow-lg shadow-slate-600/20' : 'bg-white/5 text-brand-silver-dark border-transparent hover:bg-white/10'}`}
+            className={`px-3 md:px-6 py-2 md:py-3 rounded-xl font-bold flex items-center gap-1 md:gap-2 transition-all border whitespace-nowrap text-xs md:text-sm ${activeTab === 'settings' ? 'bg-slate-600 text-white border-slate-600 shadow-lg shadow-slate-600/20' : 'bg-white/5 text-brand-silver-dark border-transparent hover:bg-white/10'}`}
           >
-            <Settings size={18} /> SETTINGS
+            <Settings size={16} className="md:block" /> SETTINGS
           </button>
         </div>
 
@@ -375,45 +375,49 @@ export default function AdminPortal() {
           <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden backdrop-blur-sm shadow-2xl">
             
             {activeTab === 'users' && (
-              <table className="w-full text-left">
-                <thead className="bg-white/5 text-brand-silver-dark text-[10px] uppercase tracking-widest">
-                  <tr>
-                    <th className="p-4 font-bold">Account Email</th>
-                    <th className="p-4 font-bold">Registered Date</th>
-                    <th className="p-4 font-bold text-right">Balance</th>
-                    <th className="p-4 font-bold text-right">Operations</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {users.length === 0 && (
-                    <tr><td colSpan={4} className="p-8 text-center text-brand-silver-dark">No users found.</td></tr>
-                  )}
-                  {users.map(u => (
-                    <tr key={u.id} className="hover:bg-white/5 transition-colors">
-                      <td className="p-4">
-                        <div className="font-medium">{u.email}</div>
-                        <div className="text-[9px] font-mono text-brand-silver-dark opacity-50 uppercase tracking-tighter">{u.id}</div>
-                      </td>
-                      <td className="p-4 text-xs text-brand-silver-dark">{new Date(u.created_at).toLocaleDateString()}</td>
-                      <td className="p-4 text-right font-mono font-bold text-green-400">${Number(u.balance).toFixed(2)}</td>
-                      <td className="p-4 text-right">
-                        <button 
-                          onClick={() => updateBalance(u.id, u.balance)}
-                          className="px-3 py-1 bg-white/10 hover:bg-white/20 rounded text-[10px] font-bold transition-colors uppercase"
-                        >
-                          Manual Adjust
-                        </button>
-                        <button 
-                          onClick={() => updateUserPassword(u.id, u.email)}
-                          className="px-3 py-1 bg-brand-blue/20 hover:bg-brand-blue/30 text-brand-blue rounded text-[10px] font-bold transition-colors uppercase ml-2"
-                        >
-                          Update Password
-                        </button>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs md:text-sm">
+                  <thead className="bg-white/5 text-brand-silver-dark text-[8px] md:text-[10px] uppercase tracking-widest sticky top-0">
+                    <tr>
+                      <th className="p-2 md:p-4 font-bold">Account Email</th>
+                      <th className="p-2 md:p-4 font-bold">Registered Date</th>
+                      <th className="p-2 md:p-4 font-bold text-right">Balance</th>
+                      <th className="p-2 md:p-4 font-bold text-right">Operations</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {users.length === 0 && (
+                      <tr><td colSpan={4} className="p-4 md:p-8 text-center text-brand-silver-dark">No users found.</td></tr>
+                    )}
+                    {users.map(u => (
+                      <tr key={u.id} className="hover:bg-white/5 transition-colors">
+                        <td className="p-2 md:p-4">
+                          <div className="font-medium text-xs md:text-sm">{u.email}</div>
+                          <div className="text-[7px] md:text-[9px] font-mono text-brand-silver-dark opacity-50 uppercase tracking-tighter">{u.id?.slice(0,6)}</div>
+                        </td>
+                        <td className="p-2 md:p-4 text-xs md:text-sm text-brand-silver-dark">{new Date(u.created_at).toLocaleDateString()}</td>
+                        <td className="p-2 md:p-4 text-right font-mono font-bold text-green-400 text-xs md:text-sm">${Number(u.balance).toFixed(2)}</td>
+                        <td className="p-2 md:p-4 text-right">
+                          <div className="flex justify-end gap-1 md:gap-2 flex-wrap">
+                            <button 
+                              onClick={() => updateBalance(u.id, u.balance)}
+                              className="px-2 py-1 md:px-3 md:py-1 bg-white/10 hover:bg-white/20 rounded text-[7px] md:text-[10px] font-bold transition-colors uppercase whitespace-nowrap"
+                            >
+                              Adjust
+                            </button>
+                            <button 
+                              onClick={() => updateUserPassword(u.id, u.email)}
+                              className="px-2 py-1 md:px-3 md:py-1 bg-brand-blue/20 hover:bg-brand-blue/30 text-brand-blue rounded text-[7px] md:text-[10px] font-bold transition-colors uppercase whitespace-nowrap"
+                            >
+                              Pwd Reset
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
 
             {activeTab === 'passkeys' && (
@@ -446,7 +450,7 @@ export default function AdminPortal() {
                       </div>
                       {pk.is_used && (
                         <div className="mt-2 pt-2 border-t border-white/5 text-[9px] text-red-400">
-                          Used at: {new Date(pk.created_at).toLocaleString()}
+                          Used at: {pk.used_at ? new Date(pk.used_at).toLocaleString() : 'N/A'}
                         </div>
                       )}
                     </div>
@@ -456,29 +460,65 @@ export default function AdminPortal() {
             )}
 
             {activeTab === 'deposits' && (
-              <table className="w-full text-left">
-                <thead className="bg-white/5 text-brand-silver-dark text-[10px] uppercase tracking-widest">
-                  <tr>
-                    <th className="p-4 font-bold">Timestamp</th>
-                    <th className="p-4 font-bold">User</th>
-                    <th className="p-4 font-bold">Requested Amount</th>
-                    <th className="p-4 font-bold">Method / Passkey</th>
-                    <th className="p-4 font-bold">Status</th>
-                    <th className="p-4 font-bold text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {requests.length === 0 && (
-                    <tr><td colSpan={6} className="p-8 text-center text-brand-silver-dark">No deposit requests found.</td></tr>
-                  )}
-                  {requests.map(r => (
-                    <tr key={r.id} className="hover:bg-white/5 transition-colors">
-                      <td className="p-4 text-xs text-brand-silver-dark">{new Date(r.created_at).toLocaleString()}</td>
-                      <td className="p-4 font-medium text-sm">{users.find(u => u.id === r.user_id)?.email || r.user_id?.slice(0,8) + '...'}</td>
-                      <td className="p-4 font-mono font-bold text-green-400 text-sm">
-                        {r.status === 'approved' ? 'Approved ✓' : r.status === 'pending' ? 'Pending Admin' : r.status}
-                      </td>
-                      <td className="p-4 font-mono text-[10px] text-brand-silver-dark max-w-[160px] truncate">Passkey</td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs md:text-sm min-w-[600px]">
+                  <thead className="bg-white/5 text-brand-silver-dark text-[8px] md:text-[10px] uppercase tracking-widest sticky top-0">
+                    <tr>
+                      <th className="p-2 md:p-4 font-bold">Timestamp</th>
+                      <th className="p-2 md:p-4 font-bold">User</th>
+                      <th className="p-2 md:p-4 font-bold">Amount</th>
+                      <th className="p-2 md:p-4 font-bold">Method</th>
+                      <th className="p-2 md:p-4 font-bold">Status</th>
+                      <th className="p-2 md:p-4 font-bold text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {requests.length === 0 && (
+                      <tr><td colSpan={6} className="p-4 md:p-8 text-center text-brand-silver-dark">No deposit requests found.</td></tr>
+                    )}
+                    {requests.map(r => (
+                      <tr key={r.id} className="hover:bg-white/5 transition-colors">
+                        <td className="p-2 md:p-4 text-[7px] md:text-xs text-brand-silver-dark">{new Date(r.created_at).toLocaleString()}</td>
+                        <td className="p-2 md:p-4 font-medium text-[8px] md:text-sm">{users.find(u => u.id === r.user_id)?.email?.split('@')[0] || 'N/A'}</td>
+                        <td className="p-2 md:p-4 font-mono font-bold text-green-400 text-[8px] md:text-sm">
+                          {r.status === 'approved' ? 'Approved ✓' : r.status === 'pending' ? 'Pending' : r.status}
+                        </td>
+                        <td className="p-2 md:p-4 font-mono text-[7px] md:text-[10px] text-brand-silver-dark">Passkey</td>
+                        <td className="p-2 md:p-4 text-[8px] md:text-sm">
+                          <span className={`px-2 py-0.5 rounded font-bold uppercase ${
+                            r.status === 'approved' ? 'bg-green-500/10 border border-green-500/20 text-green-400' :
+                            r.status === 'pending' ? 'bg-yellow-500/10 border border-yellow-500/20 text-yellow-400' :
+                            'bg-red-500/10 border border-red-500/20 text-red-400'
+                          }`}>
+                            {r.status}
+                          </span>
+                        </td>
+                        <td className="p-2 md:p-4 text-right">
+                          <div className="flex justify-end gap-1 md:gap-2 flex-wrap">
+                            {(!r.status || r.status.toLowerCase() === 'pending') && (
+                              <>
+                                <button 
+                                  onClick={() => handleDepositRequest(r.id, 'approved')}
+                                  className="px-1.5 md:px-3 py-0.5 md:py-1 bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30 rounded flex items-center gap-0.5 text-[7px] md:text-[10px] font-bold uppercase whitespace-nowrap"
+                                >
+                                  <CheckCircle size={10} className="md:block" /> Approve
+                                </button>
+                                <button 
+                                  onClick={() => handleDepositRequest(r.id, 'rejected')}
+                                  className="px-1.5 md:px-3 py-0.5 md:py-1 bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 rounded flex items-center gap-0.5 text-[7px] md:text-[10px] font-bold uppercase whitespace-nowrap"
+                                >
+                                  <XCircle size={10} className="md:block" /> Reject
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
                       <td className="p-4">
                         <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase border ${
                           r.status === 'pending' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-500' :

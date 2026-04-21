@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-import { LogOut, User, Wallet, Activity, ArrowDownToLine, Loader2 } from 'lucide-react';
+import { LogOut, User, Wallet, Activity, ArrowDownToLine, Loader2, Globe } from 'lucide-react';
 import { useLanguage } from '@/app/components/LanguageContext';
 
 export default function DashboardLayout({
@@ -13,9 +13,20 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { t } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
   const [user, setUser] = useState<any>(null);
   const [balance, setBalance] = useState<string>('0.00');
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
+
+  const languages = [
+    { code: 'en', name: 'English' },
+    { code: 'es', name: 'Español' },
+    { code: 'fr', name: 'Français' },
+    { code: 'ar', name: 'العربية' },
+    { code: 'zh', name: '中文' },
+    { code: 'de', name: 'Deutsch' },
+    { code: 'ru', name: 'Русский' },
+  ] as const;
 
   useEffect(() => {
     let mounted = true;
@@ -133,7 +144,63 @@ export default function DashboardLayout({
           </nav>
         </div>
         
-        <div className="p-6 border-t border-white/10">
+        <div className="p-6 border-t border-white/10 space-y-3">
+          <div className="relative">
+            <button 
+              onClick={() => setShowLanguageMenu(!showLanguageMenu)}
+              className="flex items-center gap-3 px-4 py-3 w-full text-brand-silver-dark hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+            >
+              <Globe size={18} /> {language.toUpperCase()}
+            </button>
+            {showLanguageMenu && (
+              <div className="absolute bottom-full left-0 right-0 mb-2 bg-black/90 border border-white/10 rounded-lg overflow-hidden z-50">
+                {languages.map(lang => (
+                  <button
+                    key={lang.code}
+                    onClick={() => {
+                      setLanguage(lang.code as any);
+                      setShowLanguageMenu(false);
+                    }}flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+              {/* Mobile Language Switcher */}
+              <div className="md:hidden relative">
+                <button 
+                  onClick={() => setShowLanguageMenu(!showLanguageMenu)}
+                  className="glass-panel px-4 py-2 rounded-xl flex items-center gap-2 w-full justify-between hover:bg-white/10 transition-colors"
+                >
+                  <Globe size={16} className="text-brand-blue" />
+                  <span className="text-xs font-bold uppercase">{language.toUpperCase()}</span>
+                </button>
+                {showLanguageMenu && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-black/90 border border-white/10 rounded-lg overflow-hidden z-50">
+                    {languages.map(lang => (
+                      <button
+                        key={lang.code}
+                        onClick={() => {
+                          setLanguage(lang.code as any);
+                          setShowLanguageMenu(false);
+                        }}
+                        className={`w-full px-3 py-2 text-xs text-left hover:bg-brand-blue/20 transition-colors ${
+                          language === lang.code ? 'bg-brand-blue/30 text-brand-blue font-bold' : 'text-brand-silver-dark'
+                        }`}
+                      >
+                        {lang.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="glass-panel px-4 py-2 md:px-6 md:py-3 rounded-xl flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-start">
+                <span className="text-brand-silver-dark text-xs md:text-sm uppercase font-bold tracking-tighter">{t('dashboard.balance') || 'Balance'}</span>
+                <span className="text-xl md:text-2xl font-mono font-bold text-white">${balance}</span>
+              </div-brand-silver-dark'
+                    }`}
+                  >
+                    {lang.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button 
             onClick={handleLogout}
             className="flex items-center gap-3 px-4 py-3 w-full text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"

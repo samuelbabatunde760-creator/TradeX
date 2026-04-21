@@ -93,22 +93,53 @@ export default function WalletPage() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
-    const { error } = await supabase.from('withdraw_requests').insert([{
-      user_id: session.user.id,
-      amount: amountNum,
-      wallet_address: withdrawWallet,
-      status: 'pending'
-    }]);
+    try {
+      // 1. Deduct amount from user balance immediately
+      const { data: currentUser } = await supabase
+        .from('users')
+        .select('balance')
+        .eq('id', session.user.id)
+        .single();
 
-    if (error) {
-      setMessage(`Error: ${error.message}`);
-    } else {
-      setMessage(t('wallet.requestSent'));
-      setTimeout(() => {
-        setShowWithdraw(false);
-        setMessage('');
-        fetchWalletData();
-      }, 3000);
+      if (!currentUser) {
+        setMessage('Error: User not found');
+        setSubmitting(false);
+        return;
+      }
+
+      const newBalance = currentUser.balance - amountNum;
+
+      // 2. Update balance
+      await supabase
+        .from('users')
+        .update({ balance: newBalance })
+        .eq('id', session.user.id);
+
+      // 3. Create withdrawal request with pending status
+      const { error } = await supabase.from('withdraw_requests').insert([{
+        user_id: session.user.id,
+        amount: amountNum,
+        wallet_address: withdrawWallet,
+        status: 'pending'
+      }]);
+
+      if (error) {
+        // Refund if request creation fails
+        await supabase
+          .from('users')
+          .update({ balance: currentUser.balance })
+          .eq('id', session.user.id);
+        setMessage(`Error: ${error.message}`);
+      } else {
+        setMessage(t('wallet.requestSent'));
+        setTimeout(() => {
+          setShowWithdraw(false);
+          setMessage('');
+          fetchWalletData();
+        }, 3000);
+      }
+    } catch (err) {
+      setMessage(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
     setSubmitting(false);
   };
