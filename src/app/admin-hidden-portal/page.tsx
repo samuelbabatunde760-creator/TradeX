@@ -3,10 +3,9 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { ShieldAlert, Users, ArrowDownToLine, ArrowUpRight, Settings, Loader2, CheckCircle, XCircle, Activity, Clock } from 'lucide-react';
 
-// Hardcoded master password for simplicity as requested
-// For production, set the ADMIN_PASSWORD environment variable. 
-// The fallback below is your requested password.
-const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || ".Henry@123456..";
+// Admin password is required - must be set in environment variables
+// NEVER hardcode passwords in source code
+const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "";
 
 export default function AdminPortal() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
