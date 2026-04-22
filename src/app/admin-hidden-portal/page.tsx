@@ -3,10 +3,10 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { ShieldAlert, Users, ArrowDownToLine, ArrowUpRight, Settings, Loader2, CheckCircle, XCircle, Activity, Clock } from 'lucide-react';
 
-// Admin password is required - must be set in environment variables
-// NEVER hardcode passwords in source code
-// NOTE: If this is empty, the environment variable wasn't loaded properly
-const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "INVALID_PASSWORD_CHECK_ENV_VARS";
+// Admin password MUST be set as environment variable - NEVER hardcode
+// This MUST match the Vercel environment variable NEXT_PUBLIC_ADMIN_PASSWORD
+// If you see blank password errors, the env var wasn't set properly on Vercel
+const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "";
 
 export default function AdminPortal() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -27,10 +27,6 @@ export default function AdminPortal() {
   useEffect(() => {
     // Load master wallet from Supabase
     fetchSettings();
-    // Check if password is set properly
-    if (!process.env.NEXT_PUBLIC_ADMIN_PASSWORD) {
-      console.warn('⚠️ NEXT_PUBLIC_ADMIN_PASSWORD is not set! Check your environment variables.');
-    }
   }, []);
 
   const fetchSettings = async () => {
@@ -49,13 +45,17 @@ export default function AdminPortal() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (passwordInput === ADMIN_PASSWORD && ADMIN_PASSWORD !== "INVALID_PASSWORD_CHECK_ENV_VARS") {
+    
+    if (!ADMIN_PASSWORD || ADMIN_PASSWORD.trim() === "") {
+      alert("❌ CRITICAL: Admin password not configured! Go to Vercel → Settings → Environment Variables and add:\nNEXT_PUBLIC_ADMIN_PASSWORD=TFOGeb9VO4=WypyRa3^zz!$udb8IJL4w\n\nThen redeploy the project.");
+      return;
+    }
+    
+    if (passwordInput === ADMIN_PASSWORD) {
       setIsAuthenticated(true);
       fetchData();
-    } else if (ADMIN_PASSWORD === "INVALID_PASSWORD_CHECK_ENV_VARS") {
-      alert("⚠️ ERROR: Admin password is not configured! Please set NEXT_PUBLIC_ADMIN_PASSWORD environment variable.");
     } else {
-      alert("Invalid credentials");
+      alert("❌ Invalid credentials - Password mismatch");
     }
   };
 
@@ -259,6 +259,7 @@ export default function AdminPortal() {
     if (status === 'approved') {
       if (!confirm("Approve this withdrawal? The amount has already been deducted from the user's balance. Ensure you send the funds manually.")) return;
       await supabase.from('withdraw_requests').update({ status: 'approved', approved_at: new Date() }).eq('id', requestId);
+      alert("✅ Withdrawal approved!");
     } else {
       // Rejection: Refund the amount to user's balance
       const refund = confirm("Reject this withdrawal? The amount will be refunded to the user's balance.");
@@ -268,12 +269,18 @@ export default function AdminPortal() {
            const { data: user } = await supabase.from('users').select('balance').eq('id', req.user_id).single();
            if (user) {
              await supabase.from('users').update({ balance: user.balance + req.amount }).eq('id', req.user_id);
+             alert("✅ Withdrawal rejected and amount refunded!");
            }
         }
+      } else {
+        alert("❌ Rejection cancelled.");
+        return;
       }
       await supabase.from('withdraw_requests').update({ status: 'rejected', rejected_at: new Date() }).eq('id', requestId);
     }
-    fetchData();
+    // Immediately refresh withdrawals to show updated status
+    const { data: updatedWithdraws } = await supabase.from('withdraw_requests').select('*').order('created_at', { ascending: false });
+    if (updatedWithdraws) setWithdraws(updatedWithdraws);
   };
 
   if (!isAuthenticated) {
