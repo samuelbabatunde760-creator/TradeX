@@ -519,41 +519,6 @@ export default function AdminPortal() {
                 </table>
               </div>
             )}
-                      <td className="p-4">
-                        <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase border ${
-                          r.status === 'pending' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-500' :
-                          r.status === 'processing' ? 'bg-blue-500/10 border-blue-500/30 text-blue-400 animate-pulse' :
-                          r.status === 'approved' ? 'bg-green-500/10 border-green-500/30 text-green-400' :
-                          'bg-red-500/10 border-red-500/30 text-red-400'
-                        }`}>
-                          {r.status}
-                        </span>
-                      </td>
-                      <td className="p-4 text-right">
-                        <div className="flex justify-end gap-2">
-                          {(!r.status || r.status.toLowerCase() === 'pending' || r.status.toLowerCase() === 'processing') && (
-                            <>
-                              <button 
-                                onClick={() => handleDepositRequest(r.id, 'approved')}
-                                className="px-3 py-1 bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30 rounded flex items-center gap-1 text-[10px] font-bold uppercase transition-all"
-                              >
-                                <CheckCircle size={12} /> Approve
-                              </button>
-                              <button 
-                                onClick={() => handleDepositRequest(r.id, 'rejected')}
-                                className="px-3 py-1 bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 rounded flex items-center gap-1 text-[10px] font-bold uppercase transition-all"
-                              >
-                                <XCircle size={12} /> Reject
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
             {activeTab === 'trades' && (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs md:text-sm min-w-[500px]">

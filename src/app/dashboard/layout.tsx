@@ -160,7 +160,15 @@ export default function DashboardLayout({
                     onClick={() => {
                       setLanguage(lang.code as any);
                       setShowLanguageMenu(false);
-                    }}flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                    }}
+                    className="w-full px-3 py-2 text-xs text-left hover:bg-brand-blue/20 transition-colors"
+                  >
+                    {lang.name}
+                  </button>
+                ))}
+              </div>
+            )}
+
               {/* Mobile Language Switcher */}
               <div className="md:hidden relative">
                 <button 
@@ -192,15 +200,8 @@ export default function DashboardLayout({
               <div className="glass-panel px-4 py-2 md:px-6 md:py-3 rounded-xl flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-start">
                 <span className="text-brand-silver-dark text-xs md:text-sm uppercase font-bold tracking-tighter">{t('dashboard.balance') || 'Balance'}</span>
                 <span className="text-xl md:text-2xl font-mono font-bold text-white">${balance}</span>
-              </div-brand-silver-dark'
-                    }`}
-                  >
-                    {lang.name}
-                  </button>
-                ))}
               </div>
-            )}
-          </div>
+            </div>
           <button 
             onClick={handleLogout}
             className="flex items-center gap-3 px-4 py-3 w-full text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
