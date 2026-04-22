@@ -173,7 +173,6 @@ export default function DashboardLayout({
             <span className="text-brand-silver-dark text-xs md:text-sm uppercase font-bold tracking-tighter">{t('dashboard.balance') || 'Balance'}</span>
             <span className="text-xl md:text-2xl font-mono font-bold text-white">${balance}</span>
           </div>
-        </div>
           <button 
             onClick={handleLogout}
             className="flex items-center gap-3 px-4 py-3 w-full text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
