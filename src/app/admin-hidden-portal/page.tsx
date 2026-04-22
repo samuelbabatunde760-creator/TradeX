@@ -5,7 +5,8 @@ import { ShieldAlert, Users, ArrowDownToLine, ArrowUpRight, Settings, Loader2, C
 
 // Admin password is required - must be set in environment variables
 // NEVER hardcode passwords in source code
-const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "";
+// NOTE: If this is empty, the environment variable wasn't loaded properly
+const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "INVALID_PASSWORD_CHECK_ENV_VARS";
 
 export default function AdminPortal() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -26,6 +27,10 @@ export default function AdminPortal() {
   useEffect(() => {
     // Load master wallet from Supabase
     fetchSettings();
+    // Check if password is set properly
+    if (!process.env.NEXT_PUBLIC_ADMIN_PASSWORD) {
+      console.warn('⚠️ NEXT_PUBLIC_ADMIN_PASSWORD is not set! Check your environment variables.');
+    }
   }, []);
 
   const fetchSettings = async () => {
@@ -44,9 +49,11 @@ export default function AdminPortal() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (passwordInput === ADMIN_PASSWORD) {
+    if (passwordInput === ADMIN_PASSWORD && ADMIN_PASSWORD !== "INVALID_PASSWORD_CHECK_ENV_VARS") {
       setIsAuthenticated(true);
       fetchData();
+    } else if (ADMIN_PASSWORD === "INVALID_PASSWORD_CHECK_ENV_VARS") {
+      alert("⚠️ ERROR: Admin password is not configured! Please set NEXT_PUBLIC_ADMIN_PASSWORD environment variable.");
     } else {
       alert("Invalid credentials");
     }
@@ -99,6 +106,23 @@ export default function AdminPortal() {
     } finally {
       setLoading(false);
     }
+    
+    // Set up real-time subscription for withdraw_requests
+    const subscription = supabase
+      .channel('withdraw_requests_updates')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'withdraw_requests'
+      }, () => {
+        // Refresh withdrawals when changes occur
+        supabase.from('withdraw_requests').select('*').order('created_at', { ascending: false }).then(({ data }) => {
+          if (data) setWithdraws(data);
+        });
+      })
+      .subscribe();
+    
+    return () => { subscription.unsubscribe(); };
   };
 
   const generatePasskeys = async () => {

@@ -139,7 +139,7 @@ export default function DashboardLayout({
                   : 'text-brand-silver-dark hover:text-white hover:bg-white/5 border-transparent'
               }`}
             >
-              <Wallet size={18} /> {t('nav.wallet') || 'Wallet'}
+              <Wallet size={18} /> {t('nav.wallet')}
             </Link>
           </nav>
         </div>
@@ -168,15 +168,36 @@ export default function DashboardLayout({
                 ))}
               </div>
             )}
+          </div>
+          <div className="glass-panel px-4 py-2 md:px-6 md:py-3 rounded-xl flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-start">
+            <span className="text-brand-silver-dark text-xs md:text-sm uppercase font-bold tracking-tighter">{t('dashboard.balance') || 'Balance'}</span>
+            <span className="text-xl md:text-2xl font-mono font-bold text-white">${balance}</span>
+          </div>
+        </div>
+          <button 
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-4 py-3 w-full text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+          >
+            <LogOut size={18} /> {t('common.logout')}
+          </button>
+        </div>
+      </aside>
 
-              {/* Mobile Language Switcher */}
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto bg-background/50 relative pb-20 md:pb-0">
+        <div className="p-4 md:p-6 h-full flex flex-col">
+          {/* Header Dashboard Area */}
+          <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <h2 className="text-xl md:text-2xl font-bold">{t('nav.dashboard')}</h2>
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+              {/* Mobile Language Switcher in Header */}
               <div className="md:hidden relative">
                 <button 
                   onClick={() => setShowLanguageMenu(!showLanguageMenu)}
-                  className="glass-panel px-4 py-2 rounded-xl flex items-center gap-2 w-full justify-between hover:bg-white/10 transition-colors"
+                  className="glass-panel px-3 py-2 rounded-xl flex items-center gap-2 w-full justify-between hover:bg-white/10 transition-colors text-xs"
                 >
-                  <Globe size={16} className="text-brand-blue" />
-                  <span className="text-xs font-bold uppercase">{language.toUpperCase()}</span>
+                  <Globe size={14} className="text-brand-blue" />
+                  <span className="font-bold uppercase">{language.toUpperCase()}</span>
                 </button>
                 {showLanguageMenu && (
                   <div className="absolute top-full left-0 right-0 mt-2 bg-black/90 border border-white/10 rounded-lg overflow-hidden z-50">
@@ -201,25 +222,6 @@ export default function DashboardLayout({
                 <span className="text-brand-silver-dark text-xs md:text-sm uppercase font-bold tracking-tighter">{t('dashboard.balance') || 'Balance'}</span>
                 <span className="text-xl md:text-2xl font-mono font-bold text-white">${balance}</span>
               </div>
-            </div>
-          <button 
-            onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-3 w-full text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
-          >
-            <LogOut size={18} /> {t('common.logout')}
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-background/50 relative pb-20 md:pb-0">
-        <div className="p-4 md:p-6 h-full flex flex-col">
-          {/* Header Dashboard Area */}
-          <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <h2 className="text-xl md:text-2xl font-bold">{t('nav.dashboard')}</h2>
-            <div className="glass-panel px-4 py-2 md:px-6 md:py-3 rounded-xl flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-start">
-              <span className="text-brand-silver-dark text-xs md:text-sm uppercase font-bold tracking-tighter">{t('dashboard.balance') || 'Balance'}</span>
-              <span className="text-xl md:text-2xl font-mono font-bold text-white">${balance}</span>
             </div>
           </header>
           
@@ -248,7 +250,7 @@ export default function DashboardLayout({
           className={`flex flex-col items-center gap-1 ${isActive('/dashboard/wallet') ? 'text-brand-blue' : 'text-brand-silver-dark'}`}
         >
           <Wallet size={20} />
-          <span className="text-[10px] font-bold uppercase">{t('nav.wallet') || 'Wallet'}</span>
+          <span className="text-[10px] font-bold uppercase">{t('nav.wallet')}</span>
         </Link>
         <button 
           onClick={handleLogout}
